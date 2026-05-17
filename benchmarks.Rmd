@@ -1,0 +1,136 @@
+---
+title: "R HTTP framework benchmarks"
+output:
+  github_document:
+    toc: true
+params:
+  run_benchmark: false
+  results_file: "results/latest.csv"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "#>")
+```
+
+```{r run-benchmark, include=FALSE}
+if (isTRUE(params$run_benchmark)) {
+  status <- system2("bash", "tools/bench/run.sh")
+  if (!identical(status, 0L)) {
+    stop("Benchmark command failed with status ", status, call. = FALSE)
+  }
+}
+```
+
+```{r load-results, include=FALSE}
+results_file <- params$results_file
+if (!file.exists(results_file)) {
+  stop(
+    "No benchmark results found at ", sQuote(results_file), ".\n",
+    "Run `bash tools/bench/run.sh` first, or render with ",
+    "`params = list(run_benchmark = TRUE)`. ",
+    call. = FALSE
+  )
+}
+
+bench <- read.csv(results_file, stringsAsFactors = FALSE, check.names = FALSE)
+required <- c(
+  "run_id", "generated_at", "variant", "label", "route", "kind",
+  "requests_per_sec", "latency_avg", "wrk_args", "server_options",
+  "host", "cpu", "logical_cpus", "memory", "os", "r_version",
+  "package_versions"
+)
+missing <- setdiff(required, names(bench))
+if (length(missing) > 0L) {
+  stop("Benchmark results are missing columns: ", paste(missing, collapse = ", "),
+       call. = FALSE)
+}
+
+variant_order <- unique(bench$variant)
+variant_labels <- setNames(bench$label, bench$variant)
+
+format_rps <- function(x) {
+  n <- suppressWarnings(as.numeric(x))
+  if (is.na(n)) return(x)
+  format(round(n), big.mark = ",", scientific = FALSE, trim = TRUE)
+}
+
+cell_for <- function(variant, route) {
+  row <- bench[bench$variant == variant & bench$route == route, , drop = FALSE]
+  if (nrow(row) == 0L) return(NA_character_)
+  sprintf("%s rps, %s", format_rps(row$requests_per_sec[[1]]), row$latency_avg[[1]])
+}
+
+comparison <- data.frame(Variant = unname(variant_labels[variant_order]), check.names = FALSE)
+comparison[["`/ping` JSON"]] <- vapply(variant_order, cell_for, character(1), route = "/ping")
+comparison[["`/ping-text` plain text"]] <- vapply(variant_order, cell_for, character(1), route = "/ping-text")
+
+server_options <- unique(bench[c("label", "server_options")])
+names(server_options) <- c("Variant", "Server options")
+rownames(server_options) <- NULL
+
+server_scripts <- c(
+  "drogonR native" = "servers/drogonR-native.R",
+  "drogonR plumber-shim" = "servers/drogonR-plumber-shim.R",
+  "plumber" = "servers/plumber.R",
+  "plumber2" = "servers/plumber2.R",
+  "plumber2 mirai async" = "servers/plumber2-mirai.R",
+  "RestRserve" = "servers/restrserve.R"
+)
+server_scripts <- server_scripts[file.exists(server_scripts)]
+
+meta <- bench[1L, , drop = FALSE]
+```
+
+# R HTTP framework benchmarks
+
+This report is generated from machine-readable benchmark output, not by copying table values by hand.
+
+## Machine and benchmark details
+
+```{r metadata, echo=FALSE, results='asis'}
+cat("- Results file: `", results_file, "`\n", sep = "")
+cat("- Run id: `", meta$run_id, "`\n", sep = "")
+cat("- Generated at: ", meta$generated_at, "\n", sep = "")
+cat("- `wrk` args: `", meta$wrk_args, "`\n", sep = "")
+cat("- Host: ", meta$host, "\n", sep = "")
+cat("- OS: ", meta$os, "\n", sep = "")
+cat("- CPU: ", meta$cpu, "\n", sep = "")
+cat("- Logical CPUs: ", meta$logical_cpus, "\n", sep = "")
+cat("- Memory: ", meta$memory, "\n", sep = "")
+cat("- R: ", meta$r_version, "\n", sep = "")
+cat("- Package versions: ", meta$package_versions, "\n", sep = "")
+```
+
+## Workload
+
+- `GET /ping`: JSON object equivalent to `{"ok": true}` where possible.
+- `GET /ping-text`: scalar string `"ok"` through the framework's default response handling.
+
+## Results
+
+```{r comparison-table, echo=FALSE}
+knitr::kable(comparison, align = c("l", "r", "r"))
+```
+
+## Server options
+
+```{r server-options-table, echo=FALSE}
+knitr::kable(server_options, align = c("l", "l"))
+```
+
+Raw `wrk` output and server logs are written under `results/` by `tools/bench/run.sh`.
+
+## Server code
+
+For transparency, these are the exact server scripts used by the harness.
+
+```{r server-code, echo=FALSE, results='asis'}
+for (label in names(server_scripts)) {
+  path <- server_scripts[[label]]
+  cat("### ", label, "\n\n", sep = "")
+  cat("Source: `", path, "`\n\n", sep = "")
+  cat("```r\n")
+  cat(readLines(path, warn = FALSE), sep = "\n")
+  cat("\n```\n\n")
+}
+```

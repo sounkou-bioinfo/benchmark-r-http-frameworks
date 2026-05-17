@@ -1,8 +1,4 @@
 #!/usr/bin/env Rscript
-if (!requireNamespace("plumber2", quietly = TRUE)) {
-  stop("Missing R package: plumber2", call. = FALSE)
-}
-
 suppressPackageStartupMessages(library(plumber2))
 
 args <- commandArgs(trailingOnly = TRUE)

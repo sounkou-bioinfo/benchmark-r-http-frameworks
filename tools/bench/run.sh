@@ -48,42 +48,27 @@ declare -A LABELS=(
 declare -A OPTIONS=(
   [drogonR-native]="DROGONR_THREADS=${DROGONR_THREADS}; DROGONR_WORKERS=${DROGONR_WORKERS}"
   [drogonR-plumber-shim]="DROGONR_THREADS=${DROGONR_THREADS}; DROGONR_WORKERS=${DROGONR_WORKERS}"
-  [plumber]="single R process; no harness threading option"
+  [plumber]="single R process; no threading option in this benchmark"
   [plumber2]="sync handlers; no mirai daemons"
   [plumber2-mirai]="async=TRUE; PLUMBER2_MIRAI_DAEMONS=${PLUMBER2_MIRAI_DAEMONS}"
-  [RestRserve]="Rserve HTTP backend; forked request processing; RESTRSERVE_JIT_LEVEL=${RESTRSERVE_JIT_LEVEL}; RESTRSERVE_PRECOMPILE=${RESTRSERVE_PRECOMPILE}; RESTRSERVE_RSERVE_PORT=${RESTRSERVE_RSERVE_PORT:-auto}"
+  [RestRserve]="Rserve HTTP backend on Linux; forked request processing; RESTRSERVE_JIT_LEVEL=${RESTRSERVE_JIT_LEVEL}; RESTRSERVE_PRECOMPILE=${RESTRSERVE_PRECOMPILE}; RESTRSERVE_RSERVE_PORT=${RESTRSERVE_RSERVE_PORT:-auto}"
 )
 VARIANTS=(drogonR-native drogonR-plumber-shim plumber plumber2 plumber2-mirai RestRserve)
-
-require_commands() {
-  local missing=()
-  local cmd
-  for cmd in Rscript curl wrk awk; do
-    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
-  done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    echo "ERROR: missing required command(s): ${missing[*]}" >&2
-    echo "Debian/Ubuntu: sudo apt-get install curl wrk" >&2
-    echo "macOS:         brew install curl wrk" >&2
-    exit 127
-  fi
-}
 
 cleanup() {
   for name in "${!PIDS[@]}"; do
     local pid="${PIDS[$name]}"
     [[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true
   done
-  sleep 0.5
-  for name in "${!PIDS[@]}"; do
-    local pid="${PIDS[$name]}"
-    [[ -n "$pid" ]] && kill -9 "$pid" 2>/dev/null || true
-  done
   if command -v fuser >/dev/null 2>&1; then
     for port in "${PORTS[@]}"; do
-      fuser -k "${port}/tcp" >/dev/null 2>&1 || true
+      fuser -TERM -k "${port}/tcp" >/dev/null 2>&1 || true
     done
   fi
+  for name in "${!PIDS[@]}"; do
+    local pid="${PIDS[$name]}"
+    [[ -n "$pid" ]] && wait "$pid" 2>/dev/null || true
+  done
 }
 trap cleanup EXIT
 
@@ -151,7 +136,7 @@ csv_row() {
 
 pkg_version() {
   local pkg=$1
-  Rscript -e "if (requireNamespace('$pkg', quietly=TRUE)) cat(as.character(packageVersion('$pkg'))) else cat(NA_character_)" 2>/dev/null || true
+  Rscript -e "cat(as.character(packageVersion('$pkg')))"
 }
 
 machine_value() {
@@ -201,8 +186,6 @@ write_csv_results() {
   echo "==> csv comparison: $out"
   echo "==> latest csv: $latest"
 }
-
-require_commands
 
 for name in "${VARIANTS[@]}"; do
   start_server "$name"

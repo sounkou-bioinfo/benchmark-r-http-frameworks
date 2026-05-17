@@ -1,8 +1,4 @@
 #!/usr/bin/env Rscript
-if (!requireNamespace("drogonR", quietly = TRUE)) {
-  stop("Missing R package: drogonR", call. = FALSE)
-}
-
 suppressPackageStartupMessages(library(drogonR))
 
 args <- commandArgs(trailingOnly = TRUE)

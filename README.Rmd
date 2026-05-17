@@ -5,11 +5,54 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(comment = "#>")
+latest_results <- "results/latest.csv"
+if (file.exists(latest_results)) {
+  bench <- read.csv(latest_results, stringsAsFactors = FALSE, check.names = FALSE)
+  variant_order <- unique(bench$variant)
+  variant_labels <- setNames(bench$label, bench$variant)
+
+  format_rps <- function(x) {
+    n <- suppressWarnings(as.numeric(x))
+    if (is.na(n)) return(x)
+    format(round(n), big.mark = ",", scientific = FALSE, trim = TRUE)
+  }
+
+  cell_for <- function(variant, route) {
+    row <- bench[bench$variant == variant & bench$route == route, , drop = FALSE]
+    sprintf("%s rps, %s", format_rps(row$requests_per_sec[[1]]), row$latency_avg[[1]])
+  }
+
+  comparison <- data.frame(Variant = unname(variant_labels[variant_order]), check.names = FALSE)
+  comparison[["`/ping` JSON"]] <- vapply(variant_order, cell_for, character(1), route = "/ping")
+  comparison[["`/ping-text` plain text"]] <- vapply(variant_order, cell_for, character(1), route = "/ping-text")
+  server_options <- unique(bench[c("label", "server_options")])
+  names(server_options) <- c("Variant", "Server options")
+  rownames(server_options) <- NULL
+  meta <- bench[1L, , drop = FALSE]
+}
 ```
 
-A standalone benchmark harness for comparing R HTTP / REST serving frameworks on the same tiny endpoints.
+A standalone benchmark suite for comparing R HTTP / REST serving frameworks on the same tiny endpoints.
 
-The harness is intentionally independent of any framework source checkout: it runs installed R packages and records raw `wrk` output plus machine/package metadata.
+It is independent of any framework source checkout: it runs installed R packages and records raw `wrk` output plus machine/package metadata.
+
+## Latest results
+
+```{r latest-results, echo=FALSE, results='asis'}
+if (exists("comparison")) {
+  cat("Results file: `", latest_results, "`  \n", sep = "")
+  cat("Run id: `", meta$run_id, "`  \n", sep = "")
+  cat("Generated at: ", meta$generated_at, "  \n", sep = "")
+  cat("`wrk` args: `", meta$wrk_args, "`  \n", sep = "")
+  cat("Machine: ", meta$os, "; ", meta$cpu, "; ", meta$logical_cpus,
+      " logical CPUs; ", meta$memory, "  \n", sep = "")
+  cat("R: ", meta$r_version, "  \n", sep = "")
+  cat("Packages: ", meta$package_versions, "\n\n", sep = "")
+  print(knitr::kable(comparison, align = c("l", "r", "r")))
+} else {
+  cat("No `results/latest.csv` yet. Run `bash tools/bench/run.sh` and re-render `README.Rmd`.\n")
+}
+```
 
 ## Frameworks
 
@@ -41,7 +84,7 @@ Override benchmark load and framework concurrency options with environment varia
 WRK_THREADS=8 WRK_CONNECTIONS=100 WRK_DURATION=60s bash tools/bench/run.sh
 ```
 
-Server options exposed by the harness:
+Server options:
 
 ```bash
 # drogonR
@@ -50,11 +93,17 @@ DROGONR_THREADS=4 DROGONR_WORKERS=1 bash tools/bench/run.sh
 # plumber2 async/mirai variant
 PLUMBER2_MIRAI_DAEMONS=5 bash tools/bench/run.sh
 
-# RestRserve / Rserve backend
+# RestRserve / Rserve backend on Linux
 RESTRSERVE_JIT_LEVEL=0 RESTRSERVE_PRECOMPILE=false bash tools/bench/run.sh
 ```
 
-RestRserve uses the Rserve HTTP backend; on Unix-like systems Rserve uses forked request processing for concurrent work. `RESTRSERVE_RSERVE_PORT` can be set if you need to pin the internal Rserve/QAP port instead of letting RestRserve choose one.
+RestRserve uses the Rserve HTTP backend. This benchmark targets Linux; Rserve uses forked request processing for concurrent work. `RESTRSERVE_RSERVE_PORT` can be set if you need to pin the internal Rserve/QAP port instead of letting RestRserve choose one.
+
+```{r server-options, echo=FALSE}
+if (exists("server_options")) {
+  knitr::kable(server_options, align = c("l", "l"))
+}
+```
 
 ## Requirements
 
@@ -73,19 +122,20 @@ install.packages(c("plumber", "plumber2", "mirai", "RestRserve", "rmarkdown", "k
 
 ## Run
 
-Run the benchmark only:
+Run the benchmark:
 
 ```bash
 bash tools/bench/run.sh
 ```
 
-Render the report from latest results:
+Render the README and full report from latest results:
 
 ```bash
+Rscript -e 'rmarkdown::render("README.Rmd")'
 Rscript -e 'rmarkdown::render("benchmarks.Rmd")'
 ```
 
-Run and render in one command:
+Run and render the full report in one command:
 
 ```bash
 Rscript -e 'rmarkdown::render("benchmarks.Rmd", params = list(run_benchmark = TRUE))'
@@ -98,4 +148,4 @@ Outputs are written to `results/`:
 - `comparison-<timestamp>.csv`
 - `latest.csv`
 
-Generated `README.md`, `benchmarks.md`, and `benchmarks.html` should be produced from their `.Rmd` sources. Do not edit generated Markdown by hand.
+`README.md` is generated from `README.Rmd`. `benchmarks.md` is generated from `benchmarks.Rmd` and includes the server code used for the run.

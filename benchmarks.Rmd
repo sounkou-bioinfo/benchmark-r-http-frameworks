@@ -122,7 +122,7 @@ Raw `wrk` output and server logs are written under `results/` by `tools/bench/ru
 
 ## Server code
 
-For transparency, these are the exact server scripts used by the harness.
+For transparency, these are the exact server scripts used by the benchmark.
 
 ```{r server-code, echo=FALSE, results='asis'}
 for (label in names(server_scripts)) {

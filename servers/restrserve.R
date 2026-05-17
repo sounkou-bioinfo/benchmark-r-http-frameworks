@@ -1,8 +1,4 @@
 #!/usr/bin/env Rscript
-if (!requireNamespace("RestRserve", quietly = TRUE)) {
-  stop("Missing R package: RestRserve", call. = FALSE)
-}
-
 suppressPackageStartupMessages(library(RestRserve))
 
 args <- commandArgs(trailingOnly = TRUE)

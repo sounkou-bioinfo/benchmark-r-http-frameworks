@@ -1,10 +1,4 @@
 #!/usr/bin/env Rscript
-for (pkg in c("drogonR", "plumber")) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    stop("Missing R package: ", pkg, call. = FALSE)
-  }
-}
-
 suppressPackageStartupMessages({
   library(drogonR)
   library(plumber)

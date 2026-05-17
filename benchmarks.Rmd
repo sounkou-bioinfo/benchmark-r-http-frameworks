@@ -75,7 +75,8 @@ server_scripts <- c(
   "plumber2" = "servers/plumber2.R",
   "plumber2 mirai async" = "servers/plumber2-mirai.R",
   "RestRserve" = "servers/restrserve.R",
-  "nanonext" = "servers/nanonext.R"
+  "nanonext" = "servers/nanonext.R",
+  "httpuv" = "servers/httpuv.R"
 )
 server_scripts <- server_scripts[file.exists(server_scripts)]
 

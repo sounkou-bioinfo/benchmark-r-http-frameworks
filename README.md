@@ -10,24 +10,25 @@ packages and records raw `wrk` output plus machine/package metadata.
 ## Latest results
 
 Results file: `results/latest.csv`  
-Run id: `20260517-202834`  
-Generated at: 2026-05-17T20:35:40+02:00  
+Run id: `20260517-204601`  
+Generated at: 2026-05-17T20:54:08+02:00  
 `wrk` args: `-t4 -c50 -d30s`  
 Machine: Ubuntu 24.04.3 LTS; 13th Gen Intel(R) Core(TM) i5-13500; 20
 logical CPUs; 62.6 GiB  
 R: R version 4.6.0 (2026-04-24)  
 Packages: drogonR=0.1.6; plumber=1.3.3; plumber2=0.2.0; mirai=2.6.1;
-RestRserve=1.2.4; Rserve=1.8.19; nanonext=1.8.2
+RestRserve=1.2.4; Rserve=1.8.19; nanonext=1.8.2; httpuv=1.6.17
 
 | Variant              |          `/ping` JSON | `/ping-text` plain text |
 |:---------------------|----------------------:|------------------------:|
-| drogonR native       | 180,779 rps, 313.72us |   318,329 rps, 177.84us |
-| drogonR plumber-shim | 121,288 rps, 460.90us |   125,360 rps, 460.11us |
-| plumber              |    1,123 rps, 42.71ms |      1,124 rps, 42.66ms |
-| plumber2             |    1,078 rps, 44.57ms |      1,094 rps, 43.85ms |
-| plumber2 mirai async |     270 rps, 177.68ms |       266 rps, 180.17ms |
-| RestRserve           |    12,642 rps, 4.22ms |      13,274 rps, 3.97ms |
-| nanonext             |    19,546 rps, 2.46ms |      19,960 rps, 2.40ms |
+| drogonR native       | 179,525 rps, 310.00us |   314,036 rps, 179.27us |
+| drogonR plumber-shim | 121,148 rps, 467.55us |   124,284 rps, 453.15us |
+| plumber              |    1,123 rps, 42.71ms |      1,128 rps, 42.53ms |
+| plumber2             |    1,078 rps, 44.57ms |      1,096 rps, 43.79ms |
+| plumber2 mirai async |     270 rps, 177.59ms |       269 rps, 178.17ms |
+| RestRserve           |    12,329 rps, 5.06ms |      13,249 rps, 4.04ms |
+| nanonext             |    20,222 rps, 2.38ms |      20,228 rps, 2.37ms |
+| httpuv               |    1,152 rps, 41.62ms |      1,155 rps, 41.52ms |
 
 ## Frameworks
 
@@ -43,6 +44,7 @@ Current variants:
 - `RestRserve` — `RestRserve::Application` served by the `Rserve`
   backend
 - `nanonext` — direct `nanonext::http_server()` endpoint handlers
+- `httpuv` — raw `httpuv::startServer()` application callback
 
 ## Workload
 
@@ -92,6 +94,7 @@ Rserve/QAP port instead of letting RestRserve choose one.
 | plumber2 mirai async | async=TRUE; PLUMBER2_MIRAI_DAEMONS=5                                                                                                      |
 | RestRserve           | Rserve HTTP backend on Linux; forked request processing; RESTRSERVE_JIT_LEVEL=0; RESTRSERVE_PRECOMPILE=false; RESTRSERVE_RSERVE_PORT=auto |
 | nanonext             | nanonext http_server; no R-level threading option exposed here                                                                            |
+| httpuv               | raw httpuv startServer; I/O thread plus R callback thread                                                                                 |
 
 ## Requirements
 
@@ -104,7 +107,7 @@ sudo apt-get install curl wrk
 R packages:
 
 ``` r
-install.packages(c("plumber", "plumber2", "mirai", "RestRserve", "nanonext", "rmarkdown", "knitr"))
+install.packages(c("plumber", "plumber2", "mirai", "RestRserve", "nanonext", "httpuv", "rmarkdown", "knitr"))
 # plus drogonR from wherever you install it
 ```
 

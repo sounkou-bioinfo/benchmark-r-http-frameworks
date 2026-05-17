@@ -69,10 +69,16 @@ cleanup() {
       fuser -TERM -k "${port}/tcp" >/dev/null 2>&1 || true
     done
   fi
+  sleep 0.5
   for name in "${!PIDS[@]}"; do
     local pid="${PIDS[$name]}"
-    [[ -n "$pid" ]] && wait "$pid" 2>/dev/null || true
+    [[ -n "$pid" ]] && kill -9 "$pid" 2>/dev/null || true
   done
+  if command -v fuser >/dev/null 2>&1; then
+    for port in "${PORTS[@]}"; do
+      fuser -KILL -k "${port}/tcp" >/dev/null 2>&1 || true
+    done
+  fi
 }
 trap cleanup EXIT
 

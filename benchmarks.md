@@ -13,6 +13,7 @@ R HTTP framework benchmarks
     - [plumber2](#plumber2)
     - [plumber2 mirai async](#plumber2-mirai-async)
     - [RestRserve](#restrserve)
+    - [nanonext](#nanonext)
 
 # R HTTP framework benchmarks
 
@@ -22,8 +23,8 @@ copying table values by hand.
 ## Machine and benchmark details
 
 - Results file: `results/latest.csv`
-- Run id: `20260517-200327`
-- Generated at: 2026-05-17T20:09:32+02:00
+- Run id: `20260517-202834`
+- Generated at: 2026-05-17T20:35:40+02:00
 - `wrk` args: `-t4 -c50 -d30s`
 - Host: Linux 6.8.0-78-generic x86_64 GNU/Linux
 - OS: Ubuntu 24.04.3 LTS
@@ -32,7 +33,7 @@ copying table values by hand.
 - Memory: 62.6 GiB
 - R: R version 4.6.0 (2026-04-24)
 - Package versions: drogonR=0.1.6; plumber=1.3.3; plumber2=0.2.0;
-  mirai=2.6.1; RestRserve=1.2.4; Rserve=1.8.19
+  mirai=2.6.1; RestRserve=1.2.4; Rserve=1.8.19; nanonext=1.8.2
 
 ## Workload
 
@@ -44,12 +45,13 @@ copying table values by hand.
 
 | Variant              |          `/ping` JSON | `/ping-text` plain text |
 |:---------------------|----------------------:|------------------------:|
-| drogonR native       | 180,604 rps, 309.03us |   314,655 rps, 180.47us |
-| drogonR plumber-shim | 120,745 rps, 461.09us |   124,543 rps, 449.21us |
-| plumber              |    1,124 rps, 42.68ms |      1,127 rps, 42.56ms |
-| plumber2             |    1,077 rps, 44.59ms |      1,093 rps, 43.87ms |
-| plumber2 mirai async |     268 rps, 178.95ms |       254 rps, 188.36ms |
-| RestRserve           |    11,145 rps, 4.80ms |      11,792 rps, 4.55ms |
+| drogonR native       | 180,779 rps, 313.72us |   318,329 rps, 177.84us |
+| drogonR plumber-shim | 121,288 rps, 460.90us |   125,360 rps, 460.11us |
+| plumber              |    1,123 rps, 42.71ms |      1,124 rps, 42.66ms |
+| plumber2             |    1,078 rps, 44.57ms |      1,094 rps, 43.85ms |
+| plumber2 mirai async |     270 rps, 177.68ms |       266 rps, 180.17ms |
+| RestRserve           |    12,642 rps, 4.22ms |      13,274 rps, 3.97ms |
+| nanonext             |    19,546 rps, 2.46ms |      19,960 rps, 2.40ms |
 
 ## Server options
 
@@ -61,6 +63,7 @@ copying table values by hand.
 | plumber2             | sync handlers; no mirai daemons                                                                                                           |
 | plumber2 mirai async | async=TRUE; PLUMBER2_MIRAI_DAEMONS=5                                                                                                      |
 | RestRserve           | Rserve HTTP backend on Linux; forked request processing; RESTRSERVE_JIT_LEVEL=0; RESTRSERVE_PRECOMPILE=false; RESTRSERVE_RSERVE_PORT=auto |
+| nanonext             | nanonext http_server; no R-level threading option exposed here                                                                            |
 
 Raw `wrk` output and server logs are written under `results/` by
 `tools/bench/run.sh`.
@@ -210,4 +213,41 @@ if (nzchar(rserve_port)) {
   start_args$port <- as.integer(rserve_port)
 }
 do.call(backend$start, start_args)
+```
+
+### nanonext
+
+Source: `servers/nanonext.R`
+
+``` r
+#!/usr/bin/env Rscript
+suppressPackageStartupMessages(library(nanonext))
+
+args <- commandArgs(trailingOnly = TRUE)
+port <- if (length(args) >= 1L) as.integer(args[[1]]) else 8087L
+
+server <- nanonext::http_server(
+  url = sprintf("http://127.0.0.1:%d", port),
+  handlers = list(
+    nanonext::handler(
+      "/ping",
+      \(request) list(
+        status = 200L,
+        headers = c("Content-Type" = "application/json"),
+        body = '{"ok":true}'
+      )
+    ),
+    nanonext::handler(
+      "/ping-text",
+      \(request) list(
+        status = 200L,
+        headers = c("Content-Type" = "application/json"),
+        body = '"ok"'
+      )
+    )
+  )
+)
+
+server$start()
+repeat later::run_now(timeoutSecs = 3600)
 ```

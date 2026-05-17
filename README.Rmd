@@ -64,6 +64,7 @@ Current variants:
 - `plumber2` — `plumber2::api_run()` with synchronous handlers
 - `plumber2-mirai` — `plumber2::api_run()` with `async = TRUE` and persistent `mirai` daemons
 - `RestRserve` — `RestRserve::Application` served by the `Rserve` backend
+- `nanonext` — direct `nanonext::http_server()` endpoint handlers
 
 ## Workload
 
@@ -116,7 +117,7 @@ sudo apt-get install curl wrk
 R packages:
 
 ```r
-install.packages(c("plumber", "plumber2", "mirai", "RestRserve", "rmarkdown", "knitr"))
+install.packages(c("plumber", "plumber2", "mirai", "RestRserve", "nanonext", "rmarkdown", "knitr"))
 # plus drogonR from wherever you install it
 ```
 

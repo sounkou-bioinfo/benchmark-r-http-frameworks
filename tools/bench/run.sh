@@ -28,6 +28,7 @@ declare -A PORTS=(
   [plumber2]=8084
   [plumber2-mirai]=8086
   [RestRserve]=8085
+  [nanonext]=8087
 )
 declare -A SCRIPTS=(
   [drogonR-native]=drogonR-native.R
@@ -36,6 +37,7 @@ declare -A SCRIPTS=(
   [plumber2]=plumber2.R
   [plumber2-mirai]=plumber2-mirai.R
   [RestRserve]=restrserve.R
+  [nanonext]=nanonext.R
 )
 declare -A LABELS=(
   [drogonR-native]="drogonR native"
@@ -44,6 +46,7 @@ declare -A LABELS=(
   [plumber2]="plumber2"
   [plumber2-mirai]="plumber2 mirai async"
   [RestRserve]="RestRserve"
+  [nanonext]="nanonext"
 )
 declare -A OPTIONS=(
   [drogonR-native]="DROGONR_THREADS=${DROGONR_THREADS}; DROGONR_WORKERS=${DROGONR_WORKERS}"
@@ -52,8 +55,9 @@ declare -A OPTIONS=(
   [plumber2]="sync handlers; no mirai daemons"
   [plumber2-mirai]="async=TRUE; PLUMBER2_MIRAI_DAEMONS=${PLUMBER2_MIRAI_DAEMONS}"
   [RestRserve]="Rserve HTTP backend on Linux; forked request processing; RESTRSERVE_JIT_LEVEL=${RESTRSERVE_JIT_LEVEL}; RESTRSERVE_PRECOMPILE=${RESTRSERVE_PRECOMPILE}; RESTRSERVE_RSERVE_PORT=${RESTRSERVE_RSERVE_PORT:-auto}"
+  [nanonext]="nanonext http_server; no R-level threading option exposed here"
 )
-VARIANTS=(drogonR-native drogonR-plumber-shim plumber plumber2 plumber2-mirai RestRserve)
+VARIANTS=(drogonR-native drogonR-plumber-shim plumber plumber2 plumber2-mirai RestRserve nanonext)
 
 cleanup() {
   for name in "${!PIDS[@]}"; do
@@ -162,7 +166,7 @@ write_csv_results() {
   memory="$(machine_value memory)"
   os="$(machine_value os)"
   r_version="$(machine_value r_version)"
-  packages="drogonR=$(pkg_version drogonR); plumber=$(pkg_version plumber); plumber2=$(pkg_version plumber2); mirai=$(pkg_version mirai); RestRserve=$(pkg_version RestRserve); Rserve=$(pkg_version Rserve)"
+  packages="drogonR=$(pkg_version drogonR); plumber=$(pkg_version plumber); plumber2=$(pkg_version plumber2); mirai=$(pkg_version mirai); RestRserve=$(pkg_version RestRserve); Rserve=$(pkg_version Rserve); nanonext=$(pkg_version nanonext)"
   wrk_args="${WRK_ARGS[*]}"
 
   {
